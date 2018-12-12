@@ -1,0 +1,152 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: grafana
+---
+apiVersion: extensions/v1beta1
+kind: Ingress
+metadata:
+  name: grafana
+  namespace: grafana
+  labels:
+    app: grafana
+  annotations:
+    kubernetes.io/ingress.class: "nginx"
+    estafette.io/cloudflare-dns: "true"
+    estafette.io/cloudflare-proxy: "true"
+    estafette.io/cloudflare-hostnames: "${HOSTNAME}"
+spec:
+  tls:
+  - hosts:
+    - ${HOSTNAME}
+    secretName: grafana-letsencrypt-certificate
+  rules:
+  - host: ${HOSTNAME}
+    http:
+      paths:
+      - path: /
+        backend:
+          serviceName: grafana
+          servicePort: http
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: grafana
+  namespace: grafana
+  labels:
+    app: grafana
+  annotations:
+    prometheus.io/probe: "true"
+    prometheus.io/probe-path: "/api/health"
+spec:
+  type: ClusterIP
+  ports:
+  - name: http
+    port: 80
+    targetPort: http
+    protocol: TCP
+  selector:
+    app: grafana
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: grafana-letsencrypt-certificate
+  namespace: grafana
+  labels:
+    app: grafana
+  annotations:
+    estafette.io/letsencrypt-certificate: "true"
+    estafette.io/letsencrypt-certificate-hostnames: "${HOSTNAME}"
+type: Opaque
+---
+apiVersion: policy/v1beta1
+kind: PodDisruptionBudget
+metadata:
+  name: grafana
+  namespace: grafana
+  labels:
+    app: grafana
+spec:
+  selector:
+    matchLabels:
+      app: grafana
+  maxUnavailable: 1
+---
+apiVersion: extensions/v1beta1
+kind: Deployment
+metadata:
+  name: grafana
+  namespace: grafana
+  labels:
+    app: grafana
+spec:
+  replicas: 1
+  revisionHistoryLimit: 10
+  selector:
+    matchLabels:
+      app: grafana
+  template:
+    metadata:
+      labels:
+        app: grafana
+    spec:
+      securityContext:
+        fsGroup: 472
+      containers:
+      - name: grafana
+        image: grafana/grafana:5.4.1
+        imagePullPolicy: Always
+        resources:
+          requests:
+            cpu: 10m
+            memory: 10Mi
+          limits:
+            cpu: 1000m
+            memory: 1024Mi
+        ports:
+        - name: http
+          containerPort: 3000
+        env:
+        - name: "GF_SERVER_ROOT_URL"
+          value: "https://${HOSTNAME}"
+        # - name: "GF_SECURITY_ADMIN_PASSWORD"
+        #   value: "${ADMIN_PASSWORD}"
+        - name: "GF_SERVER_ENABLE_GZIP"
+          value: "true"
+        - name: "GF_ANALYTICS_REPORTING_ENABLED"
+          value: "false"
+        - name: "GF_INSTALL_PLUGINS"
+          value: ""
+        livenessProbe:
+          httpGet:
+            path: /metrics
+            port: http
+          initialDelaySeconds: 120
+          timeoutSeconds: 10
+        readinessProbe:
+          httpGet:
+            path: /api/health
+            port: http
+        volumeMounts:
+        - name: grafana-data
+          mountPath: /var/lib/grafana
+      volumes:
+      - name: grafana-data
+        persistentVolumeClaim:
+          claimName: grafana-data
+---
+kind: PersistentVolumeClaim
+apiVersion: v1
+metadata:
+  name: grafana-data
+  namespace: grafana
+  annotations:
+      volume.beta.kubernetes.io/storage-class: standard
+spec:
+  accessModes:
+  - ReadWriteOnce
+  resources:
+    requests:
+      storage: 1Gi
