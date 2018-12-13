@@ -9,3 +9,17 @@ If you want to change the admin password after initial setup you'll have to exec
 ```
 kubectl exec <grafana pod> -n grafana grafana-cli admin reset-admin-password ***
 ```
+
+Check if everything's up and running with:
+
+```
+watch -n 2 kubectl get svc,ing,deploy,po,cm,secret,pdb,hpa,ep -l app=grafana -n grafana
+```
+
+Access the service via port-forwarding:
+
+```
+kubectl port-forward svc/grafana -n grafana 3000:80
+```
+
+And open `http://127.0.0.1:3000/` to see your grafna instance.
