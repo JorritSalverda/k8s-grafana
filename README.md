@@ -13,7 +13,7 @@ kubectl exec <grafana pod> -n grafana grafana-cli admin reset-admin-password ***
 Check if everything's up and running with:
 
 ```
-watch -n 2 kubectl get svc,ing,deploy,po,cm,secret,pdb,hpa,ep -l app=grafana -n grafana
+watch -n 2 kubectl get svc,ing,deploy,po,cm,secret,pdb,hpa,ep,pvc -l app=grafana -n grafana
 ```
 
 Access the service via port-forwarding:
