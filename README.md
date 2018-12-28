@@ -22,4 +22,4 @@ Access the service via port-forwarding:
 kubectl port-forward svc/grafana -n grafana 3000:80
 ```
 
-And open `http://127.0.0.1:3000/` to see your grafna instance.
+And open `http://127.0.0.1:3000/` to see your grafana instance.

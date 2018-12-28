@@ -163,6 +163,8 @@ apiVersion: v1
 metadata:
   name: grafana-data
   namespace: grafana
+  labels:
+    app: grafana
   annotations:
       volume.beta.kubernetes.io/storage-class: standard
 spec:
@@ -170,4 +172,4 @@ spec:
   - ReadWriteOnce
   resources:
     requests:
-      storage: 50Mi
+      storage: 1Gi
